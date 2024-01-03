@@ -6,8 +6,8 @@ library(tibble)
 library(dplyr)
 
 # Charger le fichier de connexion
-source("connect_broadsea.R")
-source("mappage_id.R")
+source("etl/connect_broadsea.R")
+source("etl/mappage_id.R")
 
 # Connexion à la base de données de broadsea
 con <- connect_broadsea()
@@ -34,7 +34,7 @@ query_create_table <- paste0(
 
 dbClearResult(person)
 # A executer qu'une fois (pour creer la table)
-dbExecute(con, query_create_table)
+#dbExecute(con, query_create_table)
 
 # Affichage des résultats
 result <- df_mimic_person %>%
@@ -86,3 +86,5 @@ dbWriteTable(con, c("demo_cdm", "cdm_person"), result, append = TRUE, row.names 
 df_cdm_person <- dbSendQuery(con, "SELECT * FROM demo_cdm.cdm_person;")
 
 fetch(df_cdm_person, n=-1)
+
+dbDisconnect(con)
