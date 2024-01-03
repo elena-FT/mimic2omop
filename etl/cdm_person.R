@@ -7,6 +7,7 @@ library(dplyr)
 
 # Charger le fichier de connexion
 source("connect_broadsea.R")
+source("mappage_id.R")
 
 # Connexion à la base de données de broadsea
 con <- connect_broadsea()
@@ -27,9 +28,13 @@ col_cdm_person_info <- paste0(
 )
 
 query_create_table <- paste0(
-  "CREATE TABLE cdm_person (\n",
+  "CREATE TABLE demo_cdm.cdm_person (\n",
   col_cdm_person_info, "\n);"
 )
+
+dbClearResult(person)
+# A executer qu'une fois (pour creer la table)
+dbExecute(con, query_create_table)
 
 # Affichage des résultats
 result <- df_mimic_person %>%
@@ -72,12 +77,12 @@ result <- df_mimic_person %>%
 print(result)
 
 # Supprimer la table cdm_person si elle existe déjà
-# dbExecute(con, "DROP TABLE IF EXISTS cdm_person;")
+#dbExecute(con, "DROP TABLE IF EXISTS cdm_person;")
 
 # Écrire les résultats dans la table cdm_person
-dbWriteTable(con, "cdm_person", result, append = TRUE, row.names = FALSE)
+dbWriteTable(con, c("demo_cdm", "cdm_person"), result, append = TRUE, row.names = FALSE)
 
 # Afficher les données de la table cdm_person
-df_cdm_person <- dbSendQuery(con, "SELECT * FROM cdm_person;")
-fetch(df_cdm_person, n=-1)
+df_cdm_person <- dbSendQuery(con, "SELECT * FROM demo_cdm.cdm_person;")
 
+fetch(df_cdm_person, n=-1)
