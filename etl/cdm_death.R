@@ -6,10 +6,14 @@ library(tibble)
 library(dplyr)
 
 # Charger le fichier de connexion
-source("connect_broadsea.R")
+source("etl/connect_broadsea.R")
+source("etl/mappage_id.R")
 
 # Connexion à la base de données de broadsea
 con <- connect_broadsea()
+
+# Supprimer la table cdm_death si elle existe déjà
+dbExecute(con, "DROP TABLE IF EXISTS cdm_death;")
 
 death <- dbSendQuery(con, "SELECT * FROM demo_cdm.death;")
 
@@ -25,17 +29,18 @@ col_cdm_death_info <- paste0(
 )
 
 query_create_table <- paste0(
-  "CREATE TABLE demo_cdm.cdm_death (\n",
+  "CREATE TABLE cdm_death (\n",
   col_cdm_death_info, "\n);"
 )
 
-# A executer qu'une fois (pour creer la table)
+dbClearResult(death)
+# À exécuter qu'une fois (pour créer la table)
 dbExecute(con, query_create_table)
 
 # Affichage des résultats
 result <- df_mimic_admissions %>%
+  left_join(mapping_table, by = "subject_id") %>%
   mutate(
-    person_id = row_number(),
     death_date = deathtime,
     death_datetime = deathtime,
     death_type_concept_id = as.integer(NA),
@@ -46,18 +51,17 @@ result <- df_mimic_admissions %>%
   select(
     person_id, death_date, death_datetime, 
     death_type_concept_id, cause_concept_id, cause_source_value, 
-    cause_source_concept_id)
+    cause_source_concept_id
+  )
 
 # Afficher le résultat
 print(result)
 
-# Supprimer la table cdm_person si elle existe déjà
-# dbExecute(con, "DROP TABLE IF EXISTS cdm_person;")
+# Écrire les résultats dans la table cdm_death
+dbWriteTable(con, "cdm_death", result, append = TRUE, row.names = FALSE)
 
-# Écrire les résultats dans la table cdm_person
-dbWriteTable(con, "demo_cdm.cdm_death", result, append = TRUE, row.names = FALSE)
+# Afficher les données de la table cdm_death
+df_cdm_death <- dbSendQuery(con, "SELECT * FROM cdm_death;")
+fetch(df_cdm_death, n=-1)
 
-# Afficher les données de la table cdm_person
-df_cdm_person <- dbSendQuery(con, "SELECT * FROM demo_cdm.cdm_person;")
-fetch(df_cdm_person, n=-1)
-
+dbDisconnect(con)

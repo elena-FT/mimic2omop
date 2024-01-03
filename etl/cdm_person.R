@@ -14,6 +14,9 @@ con <- connect_broadsea()
 
 # Afficher les tables dans la base de données
 dbListTables(con)
+
+dbExecute(con, "DROP TABLE IF EXISTS cdm_person;")
+
 person <- dbSendQuery(con, "SELECT * FROM demo_cdm.person;")
 
 # Récupération des données de Mimic IV Démo
