@@ -43,7 +43,6 @@ dbClearResult(person)
 result <- df_mimic_person %>%
   left_join(mapping_table, by = "subject_id") %>%
   mutate(
-    person_id_test = row_number(),
     gender_concept_id = case_when(
       gender == 'F' ~ 8532,
       gender == 'M' ~ 8507,
