@@ -193,3 +193,29 @@ procedure_concept_mapping <- function(mimic_data, cdm_data) {
   
   return(mapping_table)
 }
+
+observation_concept_mapping <- function(mimic_info, concept_filtered) {
+  # Initialisez un dictionnaire vide
+  mimic_omop_mapping <- data.frame(
+    item_id_mimic = mimic_info$itemid,
+    label_mimic = mimic_info$label,
+    abbreviation_mimic = mimic_info$abbreviation,
+    cdm_concept_id = NA,
+    cdm_concept_code = NA
+  )
+  
+  # Créer la liste de correspondances à partir de concept_filtered
+  label_mapping <- setNames(concept_filtered$concept_id, concept_filtered$concept_name)
+  
+  # Parcourir les correspondances et mettre à jour le mapping
+  for (label_mimic in names(label_mapping)) {
+    matching_items <- grep(label_mimic, mimic_info$label, ignore.case = TRUE, value = TRUE)
+    if (length(matching_items) > 0) {
+      mimic_omop_mapping$cdm_concept_id[mimic_omop_mapping$label_mimic %in% matching_items] <- label_mapping[[label_mimic]]
+      mimic_omop_mapping$cdm_concept_code[mimic_omop_mapping$label_mimic %in% matching_items] <- label_mimic
+    }
+  }
+  
+  return(mimic_omop_mapping)
+}
+

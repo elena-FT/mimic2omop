@@ -8,6 +8,7 @@ library(dplyr)
 # Charger le fichier de connexion
 source("etl/connect_broadsea.R")
 source("etl/mappage_id.R")
+source("etl/mapping_functions.R")
 
 # Connexion à la base de données de broadsea
 con <- connect_broadsea()
