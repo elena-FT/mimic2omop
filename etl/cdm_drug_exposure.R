@@ -40,6 +40,10 @@ dbClearResult(drug_exposure)
 # À exécuter qu'une fois (pour créer la table)
 dbExecute(con, query_create_table)
 
+concept <- dbSendQuery(con, "SELECT * FROM demo_cdm.concept;")
+resconcept <- dbFetch(concept, -1)
+dbClearResult(concept)
+
 calculate_average <- function(value) {
   if (value == "") {
     return(0)
@@ -53,12 +57,39 @@ calculate_average <- function(value) {
   }
 }
 
-# Affichage des résultats
+correspondance_medicaments <- data.frame(
+  medicament = c("Sodium Chloride", "Magnesium Sulfate", "Bag", "Potassium Chloride", "Heparin", "Insulin", "Calcium Gluconate"),
+  formulary_drug = c("NACLFLUSH", "MAG2PM", "BAG50", "MICROK10", "HEPA5I", "GLAR100I", "CALCG2/100NS"),
+  concept_id = NA,
+  concept_code = NA
+)
+
+correspondance_medicaments <- correspondance_medicaments %>%
+  mutate(
+    concept_id = sapply(medicament, function(med) {
+      matching_concept <- resconcept$concept_id[grep(med, resconcept$concept_name, ignore.case = TRUE)[1]]
+      if (!is.na(matching_concept)) {
+        return(matching_concept)
+      } else {
+        return(NA)
+      }
+    }),
+    concept_code = sapply(medicament, function(med) {
+      matching_source_value <- resconcept$concept_code[grep(med, resconcept$concept_name, ignore.case = TRUE)[1]]
+      if (!is.na(matching_source_value)) {
+        return(matching_source_value)
+      } else {
+        return(NA)
+      }
+    })
+  )
+
+
 result <- df_mimic_prescriptions %>%
   left_join(mapping_table, by = "subject_id") %>%
   mutate(
     drug_exposure_id = row_number(),
-    drug_concept_id = as.numeric(ifelse(!is.na(gsn), as.numeric(str_extract(gsn, "\\d+")), 0)),
+    drug_concept_id = correspondance_medicaments$concept_id[match(formulary_drug_cd, correspondance_medicaments$formulary_drug)],
     drug_exposure_start_date = as.Date(starttime),
     drug_exposure_start_datetime = as.POSIXct(starttime),
     drug_exposure_end_date = as.Date(stoptime),
@@ -72,11 +103,11 @@ result <- df_mimic_prescriptions %>%
     sig = as.character(NA),
     route_concept_id = as.integer(NA),
     lot_number = as.character(NA),
-    provider_id = as.integer(NA),
+    provider_id = 0,
     visit_occurrence_id = as.integer(NA),
     visit_detail_id = 0,
-    drug_source_value = as.character(formulary_drug_cd),
-    drug_source_concept_id = as.integer(NA),
+    drug_source_value = correspondance_medicaments$concept_code[match(formulary_drug_cd, correspondance_medicaments$formulary_drug)],
+    drug_source_concept_id = correspondance_medicaments$concept_id[match(formulary_drug_cd, correspondance_medicaments$formulary_drug)],
     route_source_value = route,
     dose_unit_source_value = form_unit_disp
   ) %>%

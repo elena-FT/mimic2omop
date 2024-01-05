@@ -23,6 +23,7 @@ mimic_folder <- "./mimic-iv-clinical-database-demo-2.2"
 admission_file <- file.path(mimic_folder, "hosp", "admissions.csv.gz")
 df_mimic_admissions <- fread(admission_file)
 
+
 d_items_file <- file.path(mimic_folder, "icu", "d_items.csv.gz")
 df_mimic_d_items <- fread(d_items_file)
 

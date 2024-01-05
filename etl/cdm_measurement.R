@@ -58,11 +58,11 @@ result <- df_mimic_labevents %>%
   left_join(mimic_omop_mapping, by = c("itemid" = "item_id_mimic")) %>%
   mutate(
     measurement_id = as.integer(labevent_id),
-    measurement_concept_id = as.integer(itemid),
+    measurement_concept_id = as.integer(concept_id_omop),
     measurement_date = as.Date(charttime),
     measurement_datetime = as.POSIXct(charttime),
     measurement_time = as.character(charttime),
-    measurement_type_concept_id = as.integer(NA), #Y'a 5001 partout dans broadsea
+    measurement_type_concept_id = as.integer(5001), #Y'a 5001 partout dans broadsea
     operator_concept_id = 0,
     value_as_number = as.double(valuenum),
     value_as_concept_id = 0,

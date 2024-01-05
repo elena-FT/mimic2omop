@@ -40,7 +40,7 @@ dbExecute(con, query_create_table)
 # Affichage des résultats
 result <- df_mimic_transfers %>%
   mutate(
-    care_site_id = as.integer(NA),
+    care_site_id = as.integer(transfer_id),
     care_site_name = careunit,
     place_of_service_concept_id = as.integer(NA),
     location_id = as.integer(NA),

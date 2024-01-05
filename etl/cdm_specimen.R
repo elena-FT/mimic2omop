@@ -9,6 +9,7 @@ library(dplyr)
 source("etl/connect_broadsea.R")
 source("etl/mappage_id.R")
 source("etl/usefull_fonctions.R")
+source("etl/mapping_functions.R")
 
 # Connexion à la base de données de broadsea
 con <- connect_broadsea()
@@ -18,7 +19,7 @@ dbExecute(con, "DROP TABLE IF EXISTS cdm_specimen;")
 
 specimen <- dbSendQuery(con, "SELECT * FROM demo_cdm.specimen;")
 #vocab <- dbSendQuery(con, "SELECT * FROM demo_cdm.vocabulary;")
-concept_recommended <- dbSendQuery(con, "SELECT * FROM demo_cdm.concept_recommended;")
+#concept_recommended <- dbSendQuery(con, "SELECT * FROM demo_cdm.concept_recommended;")
 
 # Récupération des données de Mimic IV Démo
 mimic_folder <- "./mimic-iv-clinical-database-demo-2.2"

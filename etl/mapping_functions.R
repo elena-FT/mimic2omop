@@ -92,55 +92,7 @@ measurement_concept_mapping <- function(mimic_info, resconcept_filtered) {
   return(mimic_omop_mapping)
 }
 
-procedure_concept_mapping <- function(mimic_info, concept_filtered) {
-  # Initialisez un dictionnaire vide
-  mimic_omop_mapping <- data.frame(
-    item_id_mimic = mimic_info$itemid,
-    abbrevation_mimic = mimic_info$abbreviation,
-    concept_type_id_omop = NA,
-    concept_source_value_omop = NA,
-    concept_id_omop = NA
-  )
-  
-  # Correspondances abbrevation_mimic et concept_code
-  concept_mapping <- list(
-    "Dialysis" = c("718-7"),
-    "Glucose" = c("2345-7"),
-    "Calcium" = c("17861-6"),
-    "Temperature" = c("8331-1"),
-    "Alanine" = c("1742-6"),
-    "Platelet" = c("26515-7"),
-    "Thyroxine" = c("3024-7"),
-    "Hematocrit" = c("20570-8"),
-    "White Blood" = c("26464-8"),
-    "Urea nitrogen" = c("3094-0"),
-    "Aspartate aminotransferase" = c("1920-8"),
-    "Chloride" = c("2075-0"),
-    "Creatinine" = c("2075-0"),
-    "Sodium" = c("2951-2"),
-    "Protein" = c("2885-2"),
-    "Potassium" = c("2823-3"),
-    "Albumin" = c("1751-7"),
-    "Red blood" = c("26453-1"),
-    "Bilirubin" = c("42719-5"),
-    "Alkaline" = c("6768-6")
-  )
-  
-  # Parcourir les correspondances et mettre à jour le mapping
-  for (concept_name in names(concept_mapping)) {
-    matching_items <- grep(concept_name, mimic_info$abbreviation, ignore.case = TRUE, value = TRUE)
-    
-    if (length(matching_items) > 0) {
-      for (matching_item in matching_items) {
-        mimic_omop_mapping$concept_id_omop[matching_item] <- concept_mapping[[concept_name]]
-        mimic_omop_mapping$concept_type_id_omop[matching_item] <- concept_filtered$concept_code[concept_filtered$concept_id == concept_mapping[[concept_name]]]
-        mimic_omop_mapping$concept_source_value_omop[matching_item] <- mimic_omop_mapping$concept_type_id_omop[matching_item]
-      }
-    }
-  }
-  
-  return(mimic_omop_mapping)
-}
+
 
 procedure_concept_mapping <- function(mimic_data, cdm_data) {
   # Initialisez un dictionnaire vide
@@ -156,37 +108,31 @@ procedure_concept_mapping <- function(mimic_data, cdm_data) {
   
   # Correspondances basées sur les libellés
   label_mapping <- list(
-    "Dialysis - SCUF" = "Peritoneal Dialysis",
-    "Dialysis - CVVHD" = "Hemodialysis",
-    "Dialysis - CRRT" = "Hemodialysis",
-    "CRRT Filter Change" = "Hemodialysis",
-    "Dialysis - CVVHDF" = "Hemodialysis",
-    "Ultrasound" = "Ultrasound",
-    "Travel to Radiology" = "Radiography of ankle",
-    "Portable Chest X-Ray" = "Radiography",
-    "Cervical Spine" = "Imaging",
-    "Trascranial Doppler" = "Imaging",
-    "Venogram" = "Imaging",
-    "Portable CT scan" = "Imaging",
-    "Transthoracic Echo" = "Imaging",
-    "Chest X-Ray" = "Imaging",
-    "Angiography" = "Imaging",
-    "Pelvis" = "Imaging",
-    "Abdominal X-Ray" = "Imaging",
-    "TEE" = "Imaging"
+    "20 Gauge" = "281325001",
+    "Chest X-Ray" = "399208008",
+    "18 Gauge" = "281326000",
+    "Arterial Line" = "243144002",
+    "EKG" = "69905003",
+    "Invasive Ventilation" = "446971000124100",
+    "CT scan" = "418602003",
+    "Extubation" = "171207006",
+    "Multi Lumen" = "246561000000100"
   )
   
   # Parcourir les correspondances et mettre à jour le mapping
   for (label_mimic in names(label_mapping)) {
-    print(label_mimic)
-    matching_items <- grep(label_mimic, mimic_data$label, ignore.case = TRUE, value = TRUE)
+    matching_items <- grep(label_mimic, mapping_table$label_mimic, ignore.case = TRUE, value = TRUE)
     if (length(matching_items) > 0) {
-      matching_cdm <- cdm_data[cdm_data$concept_name %in% label_mapping[[label_mimic]], ]
+      matching_code <- label_mapping[[label_mimic]]
+      matching_cdm <- resconcept_filtered[resconcept_filtered$concept_id == matching_code | resconcept_filtered$concept_code == matching_code, ]
+      mapping_table$concept_source_value[mapping_table$label_mimic == label_mimic] <- matching_code
+      
       if (nrow(matching_cdm) > 0) {
-        mapping_table$concept_id_cdm[mapping_table$label_mimic %in% matching_items] <- matching_cdm$concept_id
-        mapping_table$concept_name_cdm[mapping_table$label_mimic %in% matching_items] <- matching_cdm$concept_name
-        mapping_table$concept_type_id_cdm[mapping_table$label_mimic %in% matching_items] <- matching_cdm$concept_code
-        mapping_table$concept_source_value[mapping_table$label_mimic %in% matching_items] <- matching_cdm$concept_id
+        indices_mapping_table <- match(matching_items, mapping_table$label_mimic)
+        mapping_table$concept_id_cdm[indices_mapping_table] <- matching_cdm$concept_id
+        mapping_table$concept_name_cdm[indices_mapping_table] <- matching_cdm$concept_name
+        mapping_table$concept_type_id_cdm[indices_mapping_table] <- 38000275
+        mapping_table$concept_source_value[indices_mapping_table] <- matching_code
       }
     }
   }
@@ -218,4 +164,3 @@ observation_concept_mapping <- function(mimic_info, concept_filtered) {
   
   return(mimic_omop_mapping)
 }
-

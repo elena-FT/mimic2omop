@@ -31,13 +31,13 @@ col_cdm_person_info <- paste0(
 )
 
 query_create_table <- paste0(
-  "CREATE TABLE demo_cdm.cdm_person (\n",
+  "CREATE TABLE cdm_person (\n",
   col_cdm_person_info, "\n);"
 )
 
 dbClearResult(person)
 # A executer qu'une fois (pour creer la table)
-#dbExecute(con, query_create_table)
+dbExecute(con, query_create_table)
 
 # Affichage des résultats
 result <- df_mimic_person %>%
@@ -61,9 +61,9 @@ result <- df_mimic_person %>%
     gender_source_value = as.character(gender),
     gender_source_concept_id = 0,
     race_source_value = as.character(NA),
-    race_source_concept_id = as.integer(NA),
+    race_source_concept_id = 0,
     ethnicity_source_value = as.character(NA),
-    ethnicity_source_concept_id = as.integer(NA)
+    ethnicity_source_concept_id = 0
   ) %>%
   select(
     person_id, gender_concept_id, year_of_birth, 
@@ -78,14 +78,12 @@ result <- df_mimic_person %>%
 # Afficher le résultat
 print(result)
 
-# Supprimer la table cdm_person si elle existe déjà
-#dbExecute(con, "DROP TABLE IF EXISTS cdm_person;")
-
 # Écrire les résultats dans la table cdm_person
-dbWriteTable(con, c("demo_cdm", "cdm_person"), result, append = TRUE, row.names = FALSE)
+dbWriteTable(con, "cdm_person", result, append = TRUE, row.names = FALSE)
+#dbWriteTable(con, c("demo_cdm", "cdm_person"), result, append = TRUE, row.names = FALSE)
 
 # Afficher les données de la table cdm_person
-df_cdm_person <- dbSendQuery(con, "SELECT * FROM demo_cdm.cdm_person;")
+df_cdm_person <- dbSendQuery(con, "SELECT * FROM cdm_person;")
 
 fetch(df_cdm_person, n=-1)
 

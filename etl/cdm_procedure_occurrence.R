@@ -87,11 +87,9 @@ result_procedure <- df_mimic_procedureevents %>%
     modifier_source_value
   )
 
-# Afficher le résultat
-print(result)
 
 # Écrire les résultats dans la table cdm_death
-dbWriteTable(con, "cdm_procedure_occurrence", result, append = TRUE, row.names = FALSE)
+dbWriteTable(con, "cdm_procedure_occurrence", result_procedure, append = TRUE, row.names = FALSE)
 
 # Afficher les données de la table cdm_death
 df_cdm_procedure_occurrence <- dbSendQuery(con, "SELECT * FROM cdm_procedure_occurrence;")
