@@ -49,4 +49,27 @@ query_max_ct_scans <- "SELECT person_id, COUNT(*) AS nombre_procedures_CT_scan
 
 result_max_ct_scans <- dbGetQuery(con, query_max_ct_scans)
 
+# cdm_drug 
+
+query <- "SELECT
+  p.person_id,
+  COUNT(de.drug_exposure_id) AS nombre_aspirines
+FROM
+  cdm_person p
+JOIN
+  cdm_condition_occurrence co ON p.person_id = co.person_id
+JOIN
+  cdm_drug_exposure de ON p.person_id = de.person_id
+WHERE
+  co.condition_concept_id = 313217 -- Condition : Fibrillation auriculaire
+  AND de.drug_concept_id = 1112807 -- Médicament : Aspirine
+GROUP BY
+  p.person_id
+ORDER BY
+  nombre_aspirines DESC;
+"
+
+# Exécution de la requête
+result <- dbGetQuery(con, query)
+
 dbDisconnect(con)
