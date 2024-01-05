@@ -58,8 +58,8 @@ calculate_average <- function(value) {
 }
 
 correspondance_medicaments <- data.frame(
-  medicament = c("Sodium Chloride", "Magnesium Sulfate", "Bag", "Potassium Chloride", "Heparin", "Insulin", "Calcium Gluconate"),
-  formulary_drug = c("NACLFLUSH", "MAG2PM", "BAG50", "MICROK10", "HEPA5I", "GLAR100I", "CALCG2/100NS"),
+  medicament = c("Sodium Chloride", "Magnesium Sulfate", "Bag", "Potassium Chloride", "Heparin", "Insulin", "Calcium Gluconate", "Aspirin"),
+  formulary_drug = c("NACLFLUSH", "MAG2PM", "BAG50", "MICROK10", "HEPA5I", "GLAR100I", "CALCG2/100NS", "ASA81"),
   concept_id = NA,
   concept_code = NA
 )
