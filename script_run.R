@@ -8,6 +8,8 @@ source("etl/cdm_drug_exposure.R")
 source("etl/cdm_measurement.R")
 source("etl/cdm_procedure_occurrence.R")
 source("etl/cdm_specimen.R")
+source("etl/cdm_visit_occurrence.R")
+source("etl/cdm_condition_occurrence.R")
 
 con <- connect_broadsea()
 dbListTables(con)
