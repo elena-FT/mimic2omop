@@ -8,12 +8,11 @@ library(dplyr)
 # Charger les fichier de connexion
 source("etl/connect_broadsea.R")
 source("etl/mappage_id.R")
+source("etl/usefull_fonctions.R")
 
 # Connexion à la base de données de broadsea
 con <- connect_broadsea()
 
-# Afficher les tables dans la base de données
-dbListTables(con)
 visit_occurrence <- dbSendQuery(con, "SELECT * FROM demo_cdm.visit_occurrence;")
 
 # Récupération des données de Mimic IV Démo
@@ -27,18 +26,15 @@ col_cdm_vo_info <- paste0(
   collapse = ",\n"
 )
 
-query_create_table <- paste0(
-  "CREATE TABLE cdm_visit_occurrence (\n",
-  col_cdm_vo_info, "\n);"
-)
-
 dbClearResult(visit_occurrence)
 
 # Supprimer la table cdm_visit_occurrence si elle existe déjà
 dbExecute(con, "DROP TABLE IF EXISTS cdm_visit_occurrence;")
 
 # A executer qu'une fois (pour creer la table)
-dbExecute(con, query_create_table)
+dbExecute(con, paste0(
+  "CREATE TABLE cdm_visit_occurrence (\n",
+  col_cdm_vo_info, "\n);"))
 
 result <- df_mimic_admission %>% 
   left_join(mapping_table, by = "subject_id") %>%
@@ -87,7 +83,6 @@ print(result)
 dbWriteTable(con, "cdm_visit_occurrence", result, append = TRUE, row.names = FALSE)
 
 # Afficher les données de la table cdm_person
-df_cdm_visit_occurrence <- dbSendQuery(con, "SELECT * FROM cdm_visit_occurrence;")
-fetch(df_cdm_visit_occurrence, n=-1)
+getDataFromTable(con, "cdm_visit_occurrence", -1)
 
 dbDisconnect(con)
