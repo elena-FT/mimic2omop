@@ -8,12 +8,11 @@ library(dplyr)
 # Charger les fichier de connexion
 source("etl/connect_broadsea.R")
 source("etl/mappage_id.R")
+source("etl/usefull_fonctions.R")
 
 # Connexion à la base de données de broadsea
 con <- connect_broadsea()
 
-# Afficher les tables dans la base de données
-dbListTables(con)
 condition_occurrence <- dbSendQuery(con, "SELECT * FROM demo_cdm.condition_occurrence;")
 
 # Récupération des données de Mimic IV Démo
@@ -28,34 +27,41 @@ col_cdm_co_info <- paste0(
   paste0(col_co_info$name, " ", col_co_info$type, " ", ifelse(col_co_info$nullable, "NULL", "NOT NULL")),
   collapse = ",\n"
 )
-
-query_create_table <- paste0(
-  "CREATE TABLE cdm_condition_occurrence (\n",
-  col_cdm_co_info, "\n);"
-)
-
 dbClearResult(condition_occurrence)
 
 # Supprimer la table cdm_condition_occurrence si elle existe déjà
 dbExecute(con, "DROP TABLE IF EXISTS cdm_condition_occurrence;")
 
 # A executer qu'une fois (pour creer la table)
-dbExecute(con, query_create_table)
+dbExecute(con, paste0(
+  "CREATE TABLE cdm_condition_occurrence (\n",
+  col_cdm_co_info, "\n);"
+))
+
 
 # Récupère les tables de concepts
-concept <- dbSendQuery(con, "SELECT * FROM demo_cdm.concept;")
-resconcept <- dbFetch(concept , -1)
-dbClearResult(concept)
+resconcept <- getDataFromTable(con, "demo_cdm.concept", -1)
+res_concept_relationship <- getDataFromTable(con, "demo_cdm.concept_relationship", -1)
 
-concept_relationship <- dbSendQuery(con, "SELECT * FROM demo_cdm.concept_relationship;")
-res_concept_relationship <- dbFetch(concept_relationship , -1)
-dbClearResult(concept_relationship)
+# Simplifies some desease to mappe to OMOP
+df_mimic_diagnoses_d <- df_mimic_diagnoses_d %>%
+  mutate(concept_name = case_when(
+    grepl("pneumonia", tolower(long_title)) ~ "Pneumonia",
+    grepl("epilepsy", tolower(long_title)) ~ "Epilepsy",
+    grepl("esophagitis", tolower(long_title)) ~ "Esophagitis",
+    grepl("osteoarthritis", tolower(long_title)) ~ "Osteoarthritis",
+    grepl("gallstone", tolower(long_title)) ~ "Gallstone",
+    grepl("pyelonephritis", tolower(long_title)) ~ "Pyelonephritis",
+    grepl("anemia", tolower(long_title)) ~ "Anemia",
+    grepl("appendicitis", tolower(long_title)) ~ "Appendicitis",
+    TRUE ~ long_title
+  )) %>%
+  select(icd_code, concept_name)
+
 
 # Crée la table de mapping pour les concept_id
 mapping_table_condition <- df_mimic_diagnoses_d %>%
-  select(icd_code, long_title) %>%
-  inner_join(resconcept, by = c("long_title" = "concept_name")) %>%
-  mutate(concept_name = long_title) %>%
+  inner_join(resconcept, by = "concept_name") %>%
   filter(domain_id == "Condition") %>%
   select(
     concept_name,
@@ -87,8 +93,8 @@ result <- df_mimic_diagnoses_mapped %>%
     condition_status_concept_id = as.character(NA)
   ) %>%
   select(
-    person_id,
     condition_occurrence_id,
+    person_id,
     condition_concept_id,
     condition_start_date,
     condition_start_datetime,
@@ -112,7 +118,52 @@ print(result)
 dbWriteTable(con, "cdm_condition_occurrence", result, append = TRUE, row.names = FALSE)
 
 # Afficher les données de la table cdm_condition_occurrence
-df_cdm_condition_occurrence <- dbSendQuery(con, "SELECT * FROM cdm_condition_occurrence;")
-fetch(df_cdm_condition_occurrence, n=-1)
+getDataFromTable(con, "cdm_condition_occurrence", -1)
+
+requete_person <- dbGetQuery(con, "SELECT DISTINCT person_id FROM cdm_condition_occurrence WHERE condition_concept_id = 313217")
+
+requete_person_visit <- dbSendQuery(con, "SELECT
+    co.person_id,
+    CASE WHEN p.gender_concept_id = 8532 THEN 'F' 
+         WHEN p.gender_concept_id = 8507 THEN 'M' 
+         ELSE 'Unknown' 
+    END AS gender,
+    SUM(vo.visit_end_date - vo.visit_start_date) AS total_time_spent_in_hospital
+FROM
+    cdm_condition_occurrence co
+JOIN
+    cdm_visit_occurrence vo ON co.visit_occurrence_id = vo.visit_occurrence_id
+JOIN
+    cdm_person p ON co.person_id = p.person_id
+WHERE
+    co.condition_concept_id = 313217
+GROUP BY
+    co.person_id, p.gender_concept_id;
+;
+")
+res_requete_person_visit <- fetch(requete_person_visit, n=-1)
+dbClearResult(requete_person_visit)
+
+requete_person_visit_stat <- dbSendQuery(con, "SELECT
+    CASE WHEN p.gender_concept_id = 8532 THEN 'F' 
+         WHEN p.gender_concept_id = 8507 THEN 'M' 
+         ELSE 'Unknown' 
+    END AS gender,
+    COUNT(*) AS total_cases,
+    AVG(vo.visit_end_date - vo.visit_start_date) AS average_time_spent_in_hospital,
+    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY vo.visit_end_date - vo.visit_start_date) AS median_time_spent_in_hospital
+FROM
+    cdm_condition_occurrence co
+JOIN
+    cdm_visit_occurrence vo ON co.visit_occurrence_id = vo.visit_occurrence_id
+JOIN
+    cdm_person p ON co.person_id = p.person_id
+WHERE
+    co.condition_concept_id = 313217
+GROUP BY
+    p.gender_concept_id;
+")
+res_requete_person_visit_stat <- fetch(requete_person_visit_stat, n=-1)
+dbClearResult(requete_person_visit_stat)
 
 dbDisconnect(con)
