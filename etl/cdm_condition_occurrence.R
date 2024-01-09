@@ -145,23 +145,32 @@ res_requete_person_visit <- fetch(requete_person_visit, n=-1)
 dbClearResult(requete_person_visit)
 
 requete_person_visit_stat <- dbSendQuery(con, "SELECT
-    CASE WHEN p.gender_concept_id = 8532 THEN 'F' 
-         WHEN p.gender_concept_id = 8507 THEN 'M' 
-         ELSE 'Unknown' 
-    END AS gender,
-    COUNT(*) AS total_cases,
-    AVG(vo.visit_end_date - vo.visit_start_date) AS average_time_spent_in_hospital,
-    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY vo.visit_end_date - vo.visit_start_date) AS median_time_spent_in_hospital
-FROM
-    cdm_condition_occurrence co
-JOIN
-    cdm_visit_occurrence vo ON co.visit_occurrence_id = vo.visit_occurrence_id
-JOIN
-    cdm_person p ON co.person_id = p.person_id
-WHERE
-    co.condition_concept_id = 313217
+    gender,
+    COUNT(DISTINCT person_id) AS total_cases,
+    AVG(time_spent) AS average_time_spent_in_hospital,
+    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY time_spent) AS median_time_spent_in_hospital
+FROM (
+    SELECT
+        CASE WHEN p.gender_concept_id = 8532 THEN 'F' 
+             WHEN p.gender_concept_id = 8507 THEN 'M' 
+             ELSE 'Unknown' 
+        END AS gender,
+        co.person_id,
+        SUM(vo.visit_end_date - vo.visit_start_date) AS time_spent
+    FROM
+        cdm_condition_occurrence co
+    JOIN
+        cdm_visit_occurrence vo ON co.visit_occurrence_id = vo.visit_occurrence_id
+    JOIN
+        cdm_person p ON co.person_id = p.person_id
+    WHERE
+        co.condition_concept_id = 313217
+    GROUP BY
+        gender,
+        co.person_id
+) AS subquery
 GROUP BY
-    p.gender_concept_id;
+    gender;
 ")
 res_requete_person_visit_stat <- fetch(requete_person_visit_stat, n=-1)
 dbClearResult(requete_person_visit_stat)
